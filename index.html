@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로봇 및 구역 통합 에러 모니터링</title>
+    <title>물류 로봇 및 구역 통합 에러 모니터링</title>
     <style>
         body {
             background-color: #0f172a;
@@ -61,6 +61,14 @@
             font-size: 0.8em;
             font-weight: bold;
         }
+        .badge-warning {
+            background-color: #f97316;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
         .badge-zone {
             background-color: #8b5cf6;
             color: white;
@@ -82,7 +90,7 @@
 <body>
 
     <div class="header">
-        <h2>📊 로봇 및 구역 통합 실시간 모니터링</h2>
+        <h2>📊 물류 로봇 및 구역 통합 실시간 모니터링 (반복 알림 활성화)</h2>
         <button class="btn-permission" onclick="requestNotificationPermission()">🔔 바탕화면 알림 켜기</button>
     </div>
 
@@ -95,29 +103,29 @@
             </tr>
         </thead>
         <tbody id="error-table-body">
-            <!-- 1. 로봇 에러 -->
-            <tr>
+            <!-- 1. 장시간 대기점 도달 실패 에러 -->
+            <tr class="error-item">
+                <td><span class="badge-warning">이동 지연</span></td>
+                <td><strong>로봇 ID: 1562210</strong></td>
+                <td>장시간 대기점에 도달하지 못했습니다 (QR코드 및 노선 이탈 검사 필요)</td>
+            </tr>
+            <!-- 2. 기존 로봇 긴급 에러 -->
+            <tr class="error-item">
                 <td><span class="badge-danger">로봇 긴급</span></td>
                 <td><strong>로봇 ID: 40251865</strong></td>
                 <td>Many error robots in the fire emergency area (화재 비상 구역 진입)</td>
             </tr>
-            <!-- 2. 바닥 구역 에러 -->
-            <tr>
+            <!-- 3. 바닥 구역 에러 -->
+            <tr class="error-item">
                 <td><span class="badge-zone">구역 알림</span></td>
                 <td><strong>MapArea-434</strong></td>
                 <td>해당 구역 출현 급 정지 발생</td>
             </tr>
-            <!-- 3. 존 퍼즈(Zone Pause) 구역 정지 -->
-            <tr>
+            <!-- 4. 존 퍼즈 구역 정지 -->
+            <tr class="error-item">
                 <td><span class="badge-pause">존퍼즈 정지</span></td>
                 <td><strong>Zone Pause 구역</strong></td>
                 <td>존퍼즈(Zone Pause) 활성화로 인한 구역 정지</td>
-            </tr>
-            <!-- 4. 추가 로봇 에러 예시 -->
-            <tr>
-                <td><span class="badge-danger">로봇 예외</span></td>
-                <td><strong>로봇 ID: 1562558</strong></td>
-                <td>System program exception leads to abnormal robot path scheduling</td>
             </tr>
         </tbody>
     </table>
@@ -129,7 +137,7 @@
             } else {
                 Notification.requestPermission().then((permission) => {
                     if (permission === "granted") {
-                        alert("알림이 허용되었습니다!");
+                        alert("알림이 허용되었습니다! 이제 에러가 해결될 때까지 주기적으로 알림이 울립니다.");
                     } else {
                         alert("알림 권한이 거부되었습니다.");
                     }
@@ -146,9 +154,20 @@
             }
         }
 
-        // 테스트 알림
+        // 에러 목록(table의 row)이 남아있는 경우, 10초마다 반복해서 알림을 띄우는 기능
+        function startRepeatingAlerts() {
+            setInterval(() => {
+                const errorRows = document.querySelectorAll('.error-item');
+                // 목록에 에러 항목이 남아있다면 알림 반복 송출
+                if (errorRows.length > 0) {
+                    showDesktopNotification("🚨 [미해결 에러 경고]", "처리되지 않은 로봇 또는 구역 에러가 있습니다. 확인해주세요!");
+                }
+            }, 10000); // 10000ms = 10초 간격 (원하시면 시간 조정 가능)
+        }
+
+        // 페이지 로딩 후 3초 뒤 첫 알림을 띄우고, 그 후부터 10초마다 반복 시작
         setTimeout(() => {
-            showDesktopNotification("🚨 통합 모니터링 경고", "로봇 에러 및 MapArea 구역 정지, 존퍼즈 활성화 상태를 확인하세요!");
+            startRepeatingAlerts();
         }, 3000);
     </script>
 
