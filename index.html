@@ -25,6 +25,17 @@
             color: #f1f5f9;
             font-size: 1.4em;
         }
+        .status-indicator {
+            color: #10b981;
+            font-size: 0.9em;
+            font-weight: bold;
+            animation: blink 2s infinite;
+        }
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
         .btn-permission {
             background-color: #3b82f6;
             color: white;
@@ -36,6 +47,26 @@
         }
         .btn-permission:hover {
             background-color: #2563eb;
+        }
+        /* 해제 기록 알림창 디자인 */
+        #release-log-container {
+            background-color: #064e3b;
+            border: 2px solid #059669;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none; /* 기록이 있을 때만 보이게 설정 */
+        }
+        #release-log-container h3 {
+            margin: 0 0 10px 0;
+            color: #34d399;
+            font-size: 1.1em;
+        }
+        #release-log-list {
+            margin: 0;
+            padding-left: 20px;
+            color: #a7f3d0;
+            font-size: 0.95em;
         }
         table {
             width: 100%;
@@ -77,21 +108,24 @@
             font-size: 0.8em;
             font-weight: bold;
         }
-        .badge-pause {
-            background-color: #f59e0b;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2>📊 물류 로봇 및 구역 통합 실시간 모니터링 (반복 알림 활성화)</h2>
+        <div>
+            <h2>📊 통합 실시간 모니터링</h2>
+            <span class="status-indicator">● 15초 주기로 화면 자동 업데이트 중</span>
+        </div>
         <button class="btn-permission" onclick="requestNotificationPermission()">🔔 바탕화면 알림 켜기</button>
+    </div>
+
+    <!-- 존퍼즈 해제 기록이 뜨는 공간 -->
+    <div id="release-log-container">
+        <h3>✅ 최근 존퍼즈 해제 기록 (최대 5건)</h3>
+        <ul id="release-log-list">
+            <!-- 해제된 내역이 여기에 추가됩니다 -->
+        </ul>
     </div>
 
     <table>
@@ -103,29 +137,37 @@
             </tr>
         </thead>
         <tbody id="error-table-body">
-            <!-- 1. 장시간 대기점 도달 실패 에러 -->
+            <!-- 존퍼즈 / 구역 에러 -->
             <tr class="error-item">
-                <td><span class="badge-warning">이동 지연</span></td>
-                <td><strong>로봇 ID: 1562210</strong></td>
-                <td>장시간 대기점에 도달하지 못했습니다 (QR코드 및 노선 이탈 검사 필요)</td>
+                <td><span class="badge-zone">구역 정지</span></td>
+                <td><strong>MapArea-421</strong></td>
+                <td>구역 출현 급 정지 (존퍼즈)</td>
             </tr>
-            <!-- 2. 기존 로봇 긴급 에러 -->
+            <tr class="error-item">
+                <td><span class="badge-zone">구역 정지</span></td>
+                <td><strong>MapArea-12</strong></td>
+                <td>구역 출현 급 정지 (존퍼즈)</td>
+            </tr>
+            
+            <!-- 화재 비상 구역 진입 에러 -->
             <tr class="error-item">
                 <td><span class="badge-danger">로봇 긴급</span></td>
                 <td><strong>로봇 ID: 40251865</strong></td>
                 <td>Many error robots in the fire emergency area (화재 비상 구역 진입)</td>
             </tr>
-            <!-- 3. 바닥 구역 에러 -->
+
+            <!-- 로봇 예외 에러 -->
             <tr class="error-item">
-                <td><span class="badge-zone">구역 알림</span></td>
-                <td><strong>MapArea-434</strong></td>
-                <td>해당 구역 출현 급 정지 발생</td>
+                <td><span class="badge-danger">지도 이탈</span></td>
+                <td><strong>로봇 ID: 1562559</strong></td>
+                <td>로봇은 지도에 없습니다. / The robot presses the unlock lock button</td>
             </tr>
-            <!-- 4. 존 퍼즈 구역 정지 -->
+
+            <!-- 장시간 대기점 에러 -->
             <tr class="error-item">
-                <td><span class="badge-pause">존퍼즈 정지</span></td>
-                <td><strong>Zone Pause 구역</strong></td>
-                <td>존퍼즈(Zone Pause) 활성화로 인한 구역 정지</td>
+                <td><span class="badge-warning">이동 지연</span></td>
+                <td><strong>로봇 ID: 1562210</strong></td>
+                <td>장시간 대기점에 도달하지 못했습니다</td>
             </tr>
         </tbody>
     </table>
@@ -137,9 +179,7 @@
             } else {
                 Notification.requestPermission().then((permission) => {
                     if (permission === "granted") {
-                        alert("알림이 허용되었습니다! 이제 에러가 해결될 때까지 주기적으로 알림이 울립니다.");
-                    } else {
-                        alert("알림 권한이 거부되었습니다.");
+                        alert("알림이 켜졌습니다! 존퍼즈 해제 시에도 알림이 울립니다.");
                     }
                 });
             }
@@ -154,21 +194,71 @@
             }
         }
 
-        // 에러 목록(table의 row)이 남아있는 경우, 10초마다 반복해서 알림을 띄우는 기능
-        function startRepeatingAlerts() {
-            setInterval(() => {
-                const errorRows = document.querySelectorAll('.error-item');
-                // 목록에 에러 항목이 남아있다면 알림 반복 송출
-                if (errorRows.length > 0) {
-                    showDesktopNotification("🚨 [미해결 에러 경고]", "처리되지 않은 로봇 또는 구역 에러가 있습니다. 확인해주세요!");
-                }
-            }, 10000); // 10000ms = 10초 간격 (원하시면 시간 조정 가능)
+        // ==========================================
+        // 존퍼즈 해제 감지 및 기록 로직
+        // ==========================================
+        
+        // 1. 현재 화면에 있는 'MapArea' 구역 목록 수집
+        const currentZones = [];
+        document.querySelectorAll('.error-item').forEach(row => {
+            const targetName = row.querySelector('td:nth-child(2) strong').innerText;
+            if (targetName.includes('MapArea')) {
+                currentZones.push(targetName);
+            }
+        });
+
+        // 2. 15초 전(이전)에 저장된 구역 목록 및 해제 로그 불러오기
+        const previousZones = JSON.parse(localStorage.getItem('prevZones') || '[]');
+        let resolvedLogs = JSON.parse(localStorage.getItem('resolvedLogs') || '[]');
+
+        // 3. 이전에는 있었는데 지금은 사라진(해결된) 구역 찾기
+        previousZones.forEach(prevZone => {
+            if (!currentZones.includes(prevZone)) {
+                // 현재 시간을 측정 (예: 15:24:35)
+                const now = new Date();
+                const timeString = now.getHours().toString().padStart(2, '0') + ":" + 
+                                   now.getMinutes().toString().padStart(2, '0') + ":" + 
+                                   now.getSeconds().toString().padStart(2, '0');
+                
+                // 해제 메시지 생성
+                const logMessage = `[${prevZone}] 해당 구역 존퍼즈가 해제되었습니다. (해제 시간: ${timeString})`;
+                
+                // 로그 목록 맨 앞에 추가
+                resolvedLogs.unshift(logMessage);
+                
+                // 바탕화면 알림 띄우기
+                showDesktopNotification("✅ 존퍼즈 해제 알림", logMessage);
+            }
+        });
+
+        // 4. 최대 5개의 로그만 유지
+        if (resolvedLogs.length > 5) {
+            resolvedLogs = resolvedLogs.slice(0, 5);
         }
 
-        // 페이지 로딩 후 3초 뒤 첫 알림을 띄우고, 그 후부터 10초마다 반복 시작
+        // 5. 현재 구역과 업데이트된 로그를 브라우저에 저장
+        localStorage.setItem('prevZones', JSON.stringify(currentZones));
+        localStorage.setItem('resolvedLogs', JSON.stringify(resolvedLogs));
+
+        // 6. 해제 기록이 있다면 화면에 초록색 박스로 표시
+        if (resolvedLogs.length > 0) {
+            document.getElementById('release-log-container').style.display = 'block';
+            const logListElement = document.getElementById('release-log-list');
+            resolvedLogs.forEach(log => {
+                const li = document.createElement('li');
+                li.style.marginBottom = '8px';
+                li.innerText = log;
+                logListElement.appendChild(li);
+            });
+        }
+
+        // ==========================================
+        // 15초마다 자동 새로고침 (기존 기능)
+        // ==========================================
         setTimeout(() => {
-            startRepeatingAlerts();
-        }, 3000);
+            window.location.reload();
+        }, 15000); 
+
     </script>
 
 </body>
